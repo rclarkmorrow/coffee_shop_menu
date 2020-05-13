@@ -2,15 +2,12 @@
 # IMPORTS
 # --------------------------------------------------------------------------"""
 
-
-import os
-import json
+# Dependencies
 from flask import Flask, request, jsonify, abort
-from sqlalchemy import exc
 from flask_cors import CORS
 from types import SimpleNamespace
-
-from .database.models import db_drop_and_create_all, setup_db, Drink
+# Local modules
+from .database.models import db_drop_and_create_all, setup_db
 from .auth.auth import AuthError, requires_auth
 from .controllers.controllers import Drinks
 
@@ -22,10 +19,23 @@ from .controllers.controllers import Drinks
 
 app = Flask(__name__)
 setup_db(app)
-CORS(app)
+
+# Set up CORS. Allow '*' for origins.
+CORS(app, resources={r"*": {"origins": "*"}})
+
+
+# CORS Headers
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers',
+                         'Content-Type,Authorization,true')
+    response.headers.add('Access-Control-Allow-Methods',
+                         'GET,PUT,POST,DELETE,PATCH')
+    return response
+
 
 '''
-@TODO uncomment the following line to initialize the datbase
+!! NOTE uncomment the following line to initialize the datbase
 !! NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
 !! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 '''
@@ -36,6 +46,7 @@ db_drop_and_create_all()
 """ --------------------------------------------------------------------------#
 # ROUTES
 # --------------------------------------------------------------------------"""
+
 
 # Route handles showing the public the drink menu and the manager
 # role's ability to add new drinks to the menu.
