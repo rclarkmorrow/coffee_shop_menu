@@ -37,88 +37,91 @@ db_drop_and_create_all()
 # ROUTES
 # --------------------------------------------------------------------------"""
 
-
+# Route handles showing the public the drink menu and the manager
+# role's ability to add new drinks to the menu.
 @app.route('/drinks', methods=['GET', 'POST'])
 def get_or_post_drinks():
     # Respond to GET request.
     if request.method == 'GET':
+        # Get a menu as a Drinks object with the
+        # method that returns a list of shortened drinks.
         this_menu = Drinks()
         this_menu.get_menu()
+        # Return Drinks object JSON response property.
         return this_menu.response
     # Respond to POST request.
     elif request.method == 'POST':
+        # Wrap function to verify authorization.
         @requires_auth('post:drinks')
         def post_drink(jwt):
             this_request = request.get_json()
+            # Check request for required data, abort if not included.
             if 'title' in this_request and 'recipe' in this_request:
+                # Structure data and pass to Drinks object.
                 form_data = SimpleNamespace(**this_request)
                 this_drink = Drinks(form_data=form_data)
                 this_drink.create_drink()
+                # Return Drinks object JSON response property.
                 return this_drink.response
             else:
-                abort(500)
+                abort(422)
         return post_drink()
     else:
         abort(500)
 
 
-'''
-@TODO implement endpoint
-    GET /drinks-detail
-        it should require the 'get:drinks-detail' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
-        or appropriate status code indicating reason for failure
-'''
-
-
 @app.route('/drinks-detail', methods=['GET'])
 @requires_auth('get:drinks-detail')
 def get_drinks_detail(jwt):
-    return jsonify({'success': True,
-                    'message': 'not implemented'})
-
-
-'''
-@TODO implement endpoint
-    PATCH /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should update the corresponding row for <id>
-        it should require the 'patch:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
-        or appropriate status code indicating reason for failure
-'''
-
-
-'''
-@TODO implement endpoint
-    DELETE /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should delete the corresponding row for <id>
-        it should require the 'delete:drinks' permission
-    returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
-        or appropriate status code indicating reason for failure
-'''
+    # Get a list of recipies as a Drinks object with the
+    # metod that returns a list of lengthened drinks.
+    these_recipies = Drinks()
+    these_recipies.get_recipies()
+    # Return Drinks ojbect JSON response property.
+    return these_recipies.response
 
 
 @app.route('/drinks/<id>', methods=['PATCH', 'DELETE'])
 def patch_or_delete_drinks(id):
+    # If id is not an integer, convert it to one if possible,
+    # otherwise return the integer or original variable.
+    id = int(str(id)) if str(id).isdigit() else id
+    # Exit with 422 if id is not an int.
+    if type(id) != int:
+        abort(422)
+    # Respond to PATCH request.
     if request.method == 'PATCH':
+        # Wrap function to verify authorization.
         @requires_auth('patch:drinks')
         def patch_drink(jwt):
-            return jsonify({'success': True,
-                            'message': 'not implemented'})
-
+            this_response = request.get_json()
+            if 'title' in this_response or 'recipe' in this_response:
+                form_data = SimpleNamespace(**this_response)
+                this_drink = Drinks(form_data=form_data, id=id)
+                this_drink.edit_drink()
+                # Check for error, abort with error code.
+                if this_drink.status.error:
+                    abort(this_drink.status.code)
+                # Response OK, return Drinks JSON response property.
+                else:
+                    return this_drink.response
+            else:
+                abort(422)
         return patch_drink()
+    # Respond to DELETE request.
     elif request.method == 'DELETE':
+        # Wrap function to verify authorization.
         @requires_auth('delete:drinks')
         def delete_drink(jwt):
-            return jsonify({'succes': True,
-                           'message':  'not implemented'})
-
+            this_drink = Drinks(id=id)
+            this_drink.delete_drink()
+            # Check for error, abort with error code.
+            if this_drink.status.error:
+                abort(this_drink.status.code)
+            # Response OK, return Drinks JSON response property.
+            else:
+                return this_drink.response
+        # Run the DELETE request.
         return delete_drink()
     else:
         abort(500)
